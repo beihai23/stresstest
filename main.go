@@ -51,13 +51,13 @@ func main() {
 	}()
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
-	// todo do job in here.
-	conn, err := net.Dial("tcp", targetAddr)
-	checkError(err)
-	defer conn.Close()
-
 	stopCh := make(chan bool, 2*concurrentCount)
 	for i := 0; i < concurrentCount; i++ {
+		conn, err := net.Dial("tcp", targetAddr)
+		checkError(err)
+		defer conn.Close()
+		fmt.Println("connect to target:", targetAddr, "success.")
+
 		go sendPack(conn, genTestCase(), stopCh)
 		go recvPack(conn, stopCh)
 	}
@@ -117,7 +117,11 @@ func sendPack(conn net.Conn, buf []byte, stopCh chan bool) {
 		case <-stopCh:
 			return
 		default:
-			conn.Write(buf)
+			_, err := conn.Write(buf)
+			if err != nil {
+				fmt.Println("send failed. errinfo:", err.Error())
+				return
+			}
 		}
 	}
 }
@@ -129,7 +133,11 @@ func recvPack(conn net.Conn, stopCh chan bool) {
 		case <-stopCh:
 			return
 		default:
-			conn.Read(buf)
+			_, err := conn.Read(buf)
+			if err != nil {
+				fmt.Println("send failed. errinfo:", err.Error())
+				return
+			}
 		}
 	}
 }
